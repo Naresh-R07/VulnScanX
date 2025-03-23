@@ -2,6 +2,7 @@ import subprocess
 import tkinter as tk
 from tkinter import scrolledtext, messagebox, ttk, filedialog
 from threading import Thread
+import os
 
 # Define Cyberpunk UI themes
 DARK_MODE = {
@@ -19,62 +20,89 @@ LIGHT_MODE = {
 current_mode = DARK_MODE
 
 def apply_theme():
+    """Applies the selected theme to all widgets."""
     root.configure(bg=current_mode["bg"])
+    widgets = [start_button, clear_button, toggle_mode_button, status_label]
+    for widget in widgets:
+        widget.configure(bg=current_mode["button_bg"], fg=current_mode["accent"])
     for widget in root.winfo_children():
-        widget.configure(bg=current_mode["bg"], fg=current_mode["fg"])
-    start_button.configure(bg=current_mode["button_bg"], fg=current_mode["accent"])
-    clear_button.configure(bg=current_mode["button_bg"], fg=current_mode["accent"])
-    toggle_mode_button.configure(bg=current_mode["button_bg"], fg=current_mode["accent"])
-    status_label.configure(bg=current_mode["bg"], fg=current_mode["accent"])
+        if isinstance(widget, tk.Label):
+            widget.configure(bg=current_mode["bg"], fg=current_mode["fg"])
 
 def toggle_mode():
+    """Toggles between dark and light mode."""
     global current_mode
     current_mode = LIGHT_MODE if current_mode == DARK_MODE else DARK_MODE
     apply_theme()
 
-def run_scan(command, scan_name, target, output_text, output_file_name, status_label, progress_bar):
-    """Generic function to run a scan."""
-    status_label.config(text=f"Status: Scanning with {scan_name}...", fg=current_mode["accent"])
+def is_tool_installed(tool):
+    """Checks if a given tool is installed on the system."""
+    return subprocess.call(f"command -v {tool}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
+
+def run_scan(command, scan_name, target, output_file_name):
+    """Executes a vulnerability scan in a separate thread."""
+    status_label.config(text=f"Status: Running {scan_name} scan...", fg=current_mode["accent"])
     progress_bar["value"] = 0
     output_text.config(state="normal")
-    output_text.insert(tk.END, f"[*] Starting {scan_name} scan for {target}...\n")
-    output_text.yview(tk.END)
+    
     try:
-        result = subprocess.check_output(command, text=True)
-        output_text.insert(tk.END, result)
-        with open(output_file_name, "a") as file:
-            file.write(result)
-        output_text.insert(tk.END, f"[+] {scan_name} results saved to {output_file_name}\n")
+        if not is_tool_installed(command[0]):
+            messagebox.showerror("Error", f"{scan_name} is not installed. Please install it first.")
+            return
+        
+        output_text.insert(tk.END, f"[*] Starting {scan_name} scan for {target}...\n")
+        output_text.yview(tk.END)
+        
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        output_text.insert(tk.END, result.stdout)
+        
+        # Save results to file
+        try:
+            with open(output_file_name, "a") as file:
+                file.write(result.stdout)
+        except Exception as e:
+            output_text.insert(tk.END, f"[!] Could not save output: {e}\n")
+        
+        output_text.insert(tk.END, f"[+] {scan_name} scan completed.\n")
+    
     except subprocess.CalledProcessError as e:
-        output_text.insert(tk.END, f"[!] Error running {scan_name}: {e}\n")
+        output_text.insert(tk.END, f"[!] {scan_name} scan failed: {e}\n")
+    
     except FileNotFoundError:
-        messagebox.showerror("Error", f"{scan_name} not found. Please install it first.")
-        return
-    output_text.insert(tk.END, f"[+] {scan_name} Scan Completed.\n")
-    output_text.yview(tk.END)
-    output_text.config(state="disabled")
-    status_label.config(text="Status: Completed", fg=current_mode["accent"])
-    progress_bar["value"] = 100
+        messagebox.showerror("Error", f"{scan_name} command not found. Please install it.")
+    
+    except Exception as e:
+        messagebox.showerror("Unexpected Error", f"An error occurred: {e}")
+    
+    finally:
+        output_text.yview(tk.END)
+        output_text.config(state="disabled")
+        status_label.config(text="Status: Completed", fg=current_mode["accent"])
+        progress_bar["value"] = 100
 
 def start_scan():
-    """Start scanning based on user selection."""
-    target = target_entry.get()
-    output_file_name = output_file_entry.get()
+    """Initiates scanning based on user selection."""
+    target = target_entry.get().strip()
+    output_file_name = output_file_entry.get().strip()
     scan_type = scan_type_var.get()
     
     if not target:
-        messagebox.showerror("Error", "Please enter a target or select a file.")
+        messagebox.showerror("Input Error", "Please enter a valid target or select a file.")
         return
     
     if not output_file_name:
-        messagebox.showerror("Error", "Please enter a file name to save results.")
+        messagebox.showerror("Input Error", "Please enter a valid output file name.")
+        return
+    
+    if os.path.isdir(target):
+        messagebox.showerror("Input Error", "Target cannot be a directory.")
         return
     
     scan_commands = {
         "Website": [
             ("Nmap", ["nmap", "-sV", "-sC", target]),
             ("Nikto", ["nikto", "-h", target]),
-            ("WPScan", ["wpscan", "--url", target, "--enumerate"]),
+            ("WPScan", ["wpscan", "--url", target, "--enumerate"])
         ],
         "Mobile App": [
             ("Objection", ["objection", "explore", target]),
@@ -82,20 +110,27 @@ def start_scan():
         ]
     }
     
-    for scan_name, command in scan_commands.get(scan_type, []):
-        Thread(target=run_scan, args=(command, scan_name, target, output_text, output_file_name, status_label, progress_bar)).start()
+    if scan_type not in scan_commands:
+        messagebox.showerror("Error", "Invalid scan type selected.")
+        return
+    
+    for scan_name, command in scan_commands[scan_type]:
+        Thread(target=run_scan, args=(command, scan_name, target, output_file_name)).start()
 
 def load_targets_from_file():
-    """Load targets from a text file."""
+    """Loads targets from a selected file."""
     file_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
     if file_path:
-        with open(file_path, "r") as file:
-            targets = file.read().splitlines()
-            target_entry.delete(0, tk.END)
-            target_entry.insert(0, ", ".join(targets))
+        try:
+            with open(file_path, "r") as file:
+                targets = file.read().splitlines()
+                target_entry.delete(0, tk.END)
+                target_entry.insert(0, ", ".join(targets))
+        except Exception as e:
+            messagebox.showerror("File Error", f"Could not load file: {e}")
 
 def clear_output():
-    """Clear output window."""
+    """Clears the output text area."""
     output_text.config(state="normal")
     output_text.delete(1.0, tk.END)
     output_text.config(state="disabled")
@@ -103,7 +138,6 @@ def clear_output():
 # Create main window
 root = tk.Tk()
 root.title("Enhanced Vulnerability Scanner - Cyberpunk Edition")
-apply_theme()
 
 # UI Components
 target_label = tk.Label(root, text="Target:")
@@ -136,4 +170,8 @@ status_label.grid(row=4, column=0, columnspan=3, padx=5, pady=5)
 progress_bar.grid(row=5, column=0, columnspan=3, padx=5, pady=5)
 output_text.grid(row=6, column=0, columnspan=3, padx=5, pady=5)
 
+# Apply theme AFTER all widgets are created
+apply_theme()
+
 root.mainloop()
+
