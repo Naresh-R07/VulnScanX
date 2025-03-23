@@ -3,19 +3,27 @@
 echo "Updating system..."
 sudo apt update && sudo apt upgrade -y
 
-echo "Installing required packages..."
-sudo apt install -y python3 python3-pip python3-tk nmap nikto wpscan
+echo "Installing required system packages..."
+sudo apt install -y python3 python3-pip ruby-full nmap nikto pipx
 
-echo "Checking and installing objection..."
+# Ensure pipx is set up properly
+export PATH="$HOME/.local/bin:$PATH"
+
+# Install WPScan using gem (Ruby)
+echo "Installing WPScan..."
+sudo gem install wpscan
+
+# Install Objection using pipx
+echo "Checking and installing Objection..."
 if ! command -v objection &> /dev/null
 then
-    echo "Objection not found! Installing now..."
-    pipx install objection  # Install objection in a separate environment
+    pipx install objection
 else
     echo "Objection is already installed!"
 fi
 
+# Allow system-wide Python package installation
 echo "Installing Python dependencies..."
-pip3 install -r requirements.txt
+pip install --break-system-packages -r requirements.txt
 
 echo "Setup completed successfully!"
