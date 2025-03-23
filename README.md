@@ -36,7 +36,7 @@ Ensure the following dependencies are installed on your system:
 ### Step-by-Step Installation
 #### 1. Clone the repository
 ```bash
- git clone
+ git clone https://github.com/Naresh-R07/VulnScanx.git
  cd VulnScanX
 ```
 
