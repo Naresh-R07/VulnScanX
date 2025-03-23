@@ -40,19 +40,20 @@ Ensure the following dependencies are installed on your system:
  cd VulnScanX
 ```
 
-#### 2. Install Required Python Packages
+#### 2.Run the setup script:
 ```bash
-pip install -r requirements.txt
+chmod +x setup.sh
+./setup.sh
 ```
+This will:
 
-#### 3. Ensure Dependencies Are Installed
-```bash
-sudo apt install nmap nikto
-sudo gem install wpscan
-pipx install objection
-```
+Update your system
 
-#### 4. Run the Application
+Install **Python3, pip, pipx, and required tools**
+
+Install necessary **Python dependencies**
+
+#### 3. Run the Application
 ```bash
 python3 vulnscanx.py
 ```
