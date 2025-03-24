@@ -1,4 +1,4 @@
-# VulnScanX - Advanced Vulnerability Scanner
+# VulnzxScanX - Advanced Vulnerability Scanner
 
 ## Overview
 VulnScanX is a powerful vulnerability scanner designed for security testing. It provides a **GUI-based** interface with both **light and dark modes**, allowing security professionals to scan websites for vulnerabilities. The tool integrates multiple industry-standard security tools like **Nmap, Nikto, and WPScan** to perform comprehensive scans.
