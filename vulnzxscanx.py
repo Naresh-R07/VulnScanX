@@ -92,9 +92,33 @@ def clear_output():
     output_text.delete(1.0, tk.END)
     output_text.config(state="disabled")
 
+# Create GUI
 root = tk.Tk()
 root.title("VulnzxScanX")
+root.geometry("700x500")
+
+tk.Label(root, text="Target:").pack()
+target_entry = tk.Entry(root, width=50)
+target_entry.pack()
+
+tk.Label(root, text="Output File:").pack()
+output_file_entry = tk.Entry(root, width=50)
+output_file_entry.pack()
+
+start_button = tk.Button(root, text="Start Scan", command=start_scan)
+start_button.pack()
+
+clear_button = tk.Button(root, text="Clear Output", command=clear_output)
+clear_button.pack()
+
+status_label = tk.Label(root, text="Status: Idle")
+status_label.pack()
+
+output_text = scrolledtext.ScrolledText(root, width=80, height=20, state="disabled")
+output_text.pack()
+
 root.mainloop()
+
 
 
 
