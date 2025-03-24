@@ -33,8 +33,8 @@ Ensure the following dependencies are installed on your system:
 ### Step-by-Step Installation
 #### 1. Clone the repository
 ```bash
- git clone https://github.com/Naresh-R07/VulnScanX.git
- cd VulnScanX
+ git clone https://github.com/Naresh-R07/VulnzxScanX.git
+ cd VulnzxScanX
 ```
 
 #### 2. Run the setup script:
@@ -49,7 +49,7 @@ This will:
 
 #### 3. Run the Application
 ```bash
-python3 vulnscanx.py
+python3 vulnzxscanx.py
 ```
 
 ---
