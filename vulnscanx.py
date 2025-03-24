@@ -1,6 +1,6 @@
 import subprocess
 import tkinter as tk
-from tkinter import scrolledtext, messagebox, ttk, filedialog
+from tkinter import scrolledtext, messagebox, ttk, filedialog, simpledialog
 from threading import Thread
 import os
 
@@ -39,6 +39,11 @@ def is_tool_installed(tool):
     """Checks if a given tool is installed on the system."""
     return subprocess.call(f"command -v {tool}", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0
 
+def is_host_up(target):
+    """Checks if the target is online before scanning."""
+    result = subprocess.run(["nmap", "-sn", target], capture_output=True, text=True)
+    return "Host is up" in result.stdout
+
 def run_scan(command, scan_name, target, output_file_name):
     """Executes a vulnerability scan in a separate thread."""
     status_label.config(text=f"Status: Running {scan_name} scan...", fg=current_mode["accent"])
@@ -50,27 +55,25 @@ def run_scan(command, scan_name, target, output_file_name):
             messagebox.showerror("Error", f"{scan_name} is not installed. Please install it first.")
             return
         
+        if not is_host_up(target):
+            messagebox.showerror("Error", f"Target {target} is unreachable.")
+            return
+        
         output_text.insert(tk.END, f"[*] Starting {scan_name} scan for {target}...\n")
         output_text.yview(tk.END)
         
         result = subprocess.run(command, capture_output=True, text=True, check=True)
         output_text.insert(tk.END, result.stdout)
         
-        # Save results to file
-        try:
-            with open(output_file_name, "a") as file:
-                file.write(result.stdout)
-        except Exception as e:
-            output_text.insert(tk.END, f"[!] Could not save output: {e}\n")
+        with open(output_file_name, "a") as file:
+            file.write(result.stdout)
         
         output_text.insert(tk.END, f"[+] {scan_name} scan completed.\n")
     
     except subprocess.CalledProcessError as e:
         output_text.insert(tk.END, f"[!] {scan_name} scan failed: {e}\n")
-    
     except FileNotFoundError:
         messagebox.showerror("Error", f"{scan_name} command not found. Please install it.")
-    
     except Exception as e:
         messagebox.showerror("Unexpected Error", f"An error occurred: {e}")
     
@@ -84,7 +87,6 @@ def start_scan():
     """Initiates scanning based on user selection."""
     target = target_entry.get().strip()
     output_file_name = output_file_entry.get().strip()
-    scan_type = scan_type_var.get()
     
     if not target:
         messagebox.showerror("Input Error", "Please enter a valid target or select a file.")
@@ -98,24 +100,29 @@ def start_scan():
         messagebox.showerror("Input Error", "Target cannot be a directory.")
         return
     
+    scan_type = simpledialog.askstring("Scan Type", "Choose scan type: Quick, Full, Intense")
     scan_commands = {
-        "Website": [
-            ("Nmap", ["nmap", "-sV", "-sC", target]),
+        "Quick": [
+            ("Nmap Basic", ["nmap", "-sV", "-sC", target])
+        ],
+        "Full": [
+            ("Nmap Aggressive", ["nmap", "-A", target]),
+            ("Nmap Full Port", ["nmap", "-p-", target]),
+            ("Nmap Vulnerability", ["nmap", "--script", "vuln", target]),
             ("Nikto", ["nikto", "-h", target]),
             ("WPScan", ["wpscan", "--url", target, "--enumerate"])
         ],
-        "Mobile App": [
-            ("Objection", ["objection", "explore", target]),
-            ("MobSF", ["mobsfscan", target])
+        "Intense": [
+            ("SQLMap", ["sqlmap", "-u", target, "--batch"]),
+            ("XSStrike", ["xsstrike", "-u", target])
         ]
     }
     
-    if scan_type not in scan_commands:
-        messagebox.showerror("Error", "Invalid scan type selected.")
-        return
-    
-    for scan_name, command in scan_commands[scan_type]:
-        Thread(target=run_scan, args=(command, scan_name, target, output_file_name)).start()
+    if scan_type and scan_type in scan_commands:
+        for scan_name, command in scan_commands[scan_type]:
+            Thread(target=run_scan, args=(command, scan_name, target, output_file_name)).start()
+    else:
+        messagebox.showerror("Invalid Input", "Please enter a valid scan type.")
 
 def load_targets_from_file():
     """Loads targets from a selected file."""
@@ -135,43 +142,9 @@ def clear_output():
     output_text.delete(1.0, tk.END)
     output_text.config(state="disabled")
 
-# Create main window
 root = tk.Tk()
 root.title("Enhanced Vulnerability Scanner - Cyberpunk Edition")
-
-# UI Components
-target_label = tk.Label(root, text="Target:")
-target_entry = tk.Entry(root, width=50)
-load_button = tk.Button(root, text="Load Targets", command=load_targets_from_file)
-scan_type_label = tk.Label(root, text="Scan Type:")
-scan_type_var = tk.StringVar(value="Website")
-scan_type_dropdown = ttk.Combobox(root, textvariable=scan_type_var, values=["Website", "Mobile App"])
-output_file_label = tk.Label(root, text="Output File:")
-output_file_entry = tk.Entry(root, width=50)
-start_button = tk.Button(root, text="Start Scan", command=start_scan)
-clear_button = tk.Button(root, text="Clear", command=clear_output)
-toggle_mode_button = tk.Button(root, text="Toggle Mode", command=toggle_mode)
-status_label = tk.Label(root, text="Status: Idle")
-progress_bar = ttk.Progressbar(root, orient="horizontal", mode="determinate")
-output_text = scrolledtext.ScrolledText(root, width=80, height=20, state="disabled")
-
-# Place UI components
-target_label.grid(row=0, column=0, padx=5, pady=5)
-target_entry.grid(row=0, column=1, padx=5, pady=5)
-load_button.grid(row=0, column=2, padx=5, pady=5)
-scan_type_label.grid(row=1, column=0, padx=5, pady=5)
-scan_type_dropdown.grid(row=1, column=1, padx=5, pady=5)
-output_file_label.grid(row=2, column=0, padx=5, pady=5)
-output_file_entry.grid(row=2, column=1, padx=5, pady=5)
-start_button.grid(row=3, column=0, padx=5, pady=5)
-clear_button.grid(row=3, column=1, padx=5, pady=5)
-toggle_mode_button.grid(row=3, column=2, padx=5, pady=5)
-status_label.grid(row=4, column=0, columnspan=3, padx=5, pady=5)
-progress_bar.grid(row=5, column=0, columnspan=3, padx=5, pady=5)
-output_text.grid(row=6, column=0, columnspan=3, padx=5, pady=5)
-
-# Apply theme AFTER all widgets are created
 apply_theme()
-
 root.mainloop()
+
 
