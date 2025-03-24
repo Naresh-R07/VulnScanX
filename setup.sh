@@ -13,15 +13,6 @@ export PATH="$HOME/.local/bin:$PATH"
 echo "Installing WPScan..."
 sudo gem install wpscan
 
-# Install Objection using pipx
-echo "Checking and installing Objection..."
-if ! command -v objection &> /dev/null
-then
-    pipx install objection
-else
-    echo "Objection is already installed!"
-fi
-
 # Allow system-wide Python package installation
 echo "Installing Python dependencies..."
 pip install --break-system-packages -r requirements.txt
