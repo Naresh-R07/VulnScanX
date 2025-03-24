@@ -17,8 +17,7 @@ VulnScanX is an vulnerability scanner designed for security testing. It provides
 | **Nmap** | Scans for open ports and running services. |
 | **Nikto** | Identifies vulnerabilities in web applications. |
 | **WPScan** | Checks WordPress sites for security flaws. |
-| **Objection** | Security analysis for mobile apps. |
-| **MobSF** | Static and dynamic analysis of mobile applications. |
+
 
 ---
 
@@ -60,20 +59,21 @@ python3 vulnscanx.py
 
 ---
 
-## Usage Guide
-### Selecting a Target Type
-1. **Website** - Enter the target domain (e.g., `https://example.com`).
-2. **Mobile Application** - Provide the APK file for static analysis.
+##Usage
 
-### Running a Scan
-1. Enter the **Target URL** or **APK Path**.
-2. Choose the output file to save results.
-3. Click **Start Scan**.
+Enter Target URL/IP: Provide the target website or IP address.
 
-### Output & Logs
-- Results are displayed in the GUI console.
-- A detailed log is saved in the specified output file.
+Choose Scan Type:
 
+Quick Scan (Basic Nmap scan)
+
+Full Scan (Comprehensive analysis using multiple tools)
+
+Intense Scan (Includes SQLMap and XSStrike for deeper analysis)
+
+Start Scan: Click 'Start Scan' and monitor results in real-time.
+
+Save Results: All scans are auto-saved in the specified output file.
 ---
 ## Donate
 - If you find VulnScanX useful, consider supporting its development:
