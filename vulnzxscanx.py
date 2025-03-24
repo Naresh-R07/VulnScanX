@@ -51,29 +51,6 @@ def run_scan(command, scan_name, target, output_file_name):
         status_label.config(text="Status: Completed")
         output_text.config(state="disabled")
 
-# Function to get random proxy
-def get_random_proxy():
-    proxy_list = ["http://proxy1:port", "http://proxy2:port"]
-    return random.choice(proxy_list)
-
-# Function to perform stealth curl request
-def curl_with_headers(target):
-    user_agents = [
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/91.0",
-        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/88.0",
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Safari/537.36"
-    ]
-    referers = ["https://www.google.com", "https://www.bing.com", "https://duckduckgo.com"]
-    headers = [
-        f"-H 'User-Agent: {random.choice(user_agents)}'",
-        f"-H 'Referer: {random.choice(referers)}'",
-        "-H 'Accept: text/html,application/xhtml+xml'",
-        "-H 'Accept-Language: en-US,en;q=0.5'"
-    ]
-    command = f"curl -k {' '.join(headers)} {target}"
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
-    return result.stdout
-
 # Function to load targets from a file
 def load_targets_from_file():
     file_path = filedialog.askopenfilename(filetypes=[("Text Files", "*.txt")])
@@ -86,25 +63,51 @@ def load_targets_from_file():
         except Exception as e:
             messagebox.showerror("File Error", f"Could not load file: {e}")
 
-# GUI Setup
+# Function to start scan
+def start_scan():
+    target = target_entry.get()
+    output_file_name = output_file_entry.get()
+    scan_type = scan_type_var.get()
+    
+    if not target:
+        messagebox.showerror("Error", "Please enter a target.")
+        return
+    
+    if not output_file_name:
+        output_file_name = "scan_results.txt"
+    
+    scan_commands = {
+        "Quick": ["nmap", "-T4", "-F", target],
+        "Full": ["nmap", "-p-", target],
+        "Intense": ["nmap", "-T4", "-A", "-v", target],
+        "CVE Scan": ["nmap", "--script", "vulners", "-sV", target],
+    }
+    
+    if scan_type in scan_commands:
+        Thread(target=run_scan, args=(scan_commands[scan_type], scan_type, target, output_file_name)).start()
+    else:
+        messagebox.showerror("Error", "Invalid scan type selected.")
+
+# GUI Setup with Dark Theme
 root = tk.Tk()
 root.title("VulnzxScanX")
 root.geometry("700x600")
+root.configure(bg="#2E2E2E")
 
 # Target Input
-tk.Label(root, text="Target:").grid(row=0, column=0)
+tk.Label(root, text="Target:", fg="white", bg="#2E2E2E").grid(row=0, column=0)
 target_entry = tk.Entry(root, width=50)
 target_entry.grid(row=0, column=1)
-load_file_button = tk.Button(root, text="Load File", command=load_targets_from_file)
+load_file_button = tk.Button(root, text="Load File", command=load_targets_from_file, bg="#555555", fg="white")
 load_file_button.grid(row=0, column=2)
 
 # Output File Input
-tk.Label(root, text="Output File:").grid(row=1, column=0)
+tk.Label(root, text="Output File:", fg="white", bg="#2E2E2E").grid(row=1, column=0)
 output_file_entry = tk.Entry(root, width=50)
 output_file_entry.grid(row=1, column=1)
 
 # Dropdown for scan type
-scan_type_label = tk.Label(root, text="Scan Type:")
+scan_type_label = tk.Label(root, text="Scan Type:", fg="white", bg="#2E2E2E")
 scan_type_label.grid(row=2, column=0)
 scan_type_options = ["Quick", "Full", "Intense", "CVE Scan"]
 scan_type_var = tk.StringVar()
@@ -113,18 +116,18 @@ scan_type_dropdown.grid(row=2, column=1)
 scan_type_dropdown.set("Quick")
 
 # Buttons
-start_button = tk.Button(root, text="Start Scan", command=lambda: start_scan())
+start_button = tk.Button(root, text="Start Scan", command=start_scan, bg="#008000", fg="white")
 start_button.grid(row=3, column=0)
-clear_button = tk.Button(root, text="Clear Output", command=lambda: clear_output())
+clear_button = tk.Button(root, text="Clear Output", command=lambda: output_text.delete("1.0", tk.END), bg="#555555", fg="white")
 clear_button.grid(row=3, column=1)
-cancel_button = tk.Button(root, text="Cancel Scan", command=lambda: os.killpg(os.getpgid(process.pid), signal.SIGTERM))
+cancel_button = tk.Button(root, text="Cancel Scan", command=lambda: os.killpg(os.getpgid(process.pid), signal.SIGTERM), bg="#FF0000", fg="white")
 cancel_button.grid(row=3, column=2)
 
-# Output text box
-output_text = scrolledtext.ScrolledText(root, height=20, width=80, state="disabled")
+# Output text box with Dark Mode
+output_text = scrolledtext.ScrolledText(root, height=20, width=80, state="normal", bg="#1E1E1E", fg="white")
 output_text.grid(row=4, column=0, columnspan=3)
 
-status_label = tk.Label(root, text="Status: Idle")
+status_label = tk.Label(root, text="Status: Idle", fg="white", bg="#2E2E2E")
 status_label.grid(row=5, column=0, columnspan=3)
 
 root.mainloop()
